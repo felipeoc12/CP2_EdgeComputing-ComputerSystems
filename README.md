@@ -1,4 +1,4 @@
-# 🍷 Vinheria Agnello: Monitoramento de Ambiente (Fase 2)
+# 🍷 Vinheria Agnello: Monitoramento de Ambiente
 
 **Checkpoint 02 · Edge Computing & Computer Systems · Engenharia de Software · FIAP 2026**
 
@@ -127,4 +127,4 @@ Ao ligar, o LCD mostra a **animação do logo**: duas taças se enchem de vinho,
 
 ## 🖼️ Circuito
 
-![Circuito no Wokwi](circuito.png)
+![Circuito no Wokwi](circuito.jpeg)
