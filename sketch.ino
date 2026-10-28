@@ -36,7 +36,6 @@ const int PIN_LED_VERMELHO = 4;
 const int PIN_LED_AMARELO  = 3;
 const int PIN_LED_VERDE    = 2;
 const int PIN_BUZZER       = 13;
-// LCD e RTC usam o barramento I2C: SDA = A4, SCL = A5
 
 // ===================== COMPONENTES ===================
 LiquidCrystal_I2C lcd(0x27, 16, 2);   // endereço I2C 0x27, 16 colunas x 2 linhas
@@ -49,31 +48,26 @@ const byte ESTADO_ALERTA  = 1;
 const byte ESTADO_CRITICO = 2;
 
 // ============ CALIBRAÇÃO DO LDR (com map) ============
-// Valores brutos do ADC (0-1023) medidos no Wokwi pelo Monitor Serial.
-// No módulo LDR do Wokwi, quanto MAIS luz, MENOR a tensão na saída AO,
-// por isso o "escuro" é o valor alto e o "claro" o valor baixo.
+
 const int LDR_ESCURO = 1015;   // leitura com o mínimo de luz  -> 0%
 const int LDR_CLARO  = 10;     // leitura com o máximo de luz  -> 100%
-// Com esses valores: até 30% ~ até 30 lux (penumbra), 60% ~ 175 lux.
 
 // ===================== LIMITES =======================
-// Luminosidade (%): vinho deve ficar na penumbra
+
 const int LUZ_ALERTA  = 30;    // acima de 30% -> alerta ("meia luz")
 const int LUZ_CRITICO = 60;    // acima de 60% -> crítico ("muito claro")
 
-// Temperatura (°C): ideal ~13 °C, variações > 3 °C prejudicam o vinho
 const float TEMP_IDEAL      = 13.0;
 const float TEMP_TOL_OK     = 3.0;   // 10 a 16 °C -> OK
 const float TEMP_TOL_ALERTA = 6.0;   // 7 a 19 °C  -> alerta; fora disso -> crítico
 
-// Umidade (%): ideal ~70%, aceitável de 60% a 80%
 const float UMID_OK_MIN      = 60.0;
 const float UMID_OK_MAX      = 80.0;
 const float UMID_ALERTA_MIN  = 50.0; // 50-60% ou 80-90% -> alerta
 const float UMID_ALERTA_MAX  = 90.0; // abaixo de 50% ou acima de 90% -> crítico
 
 // ================== MÉDIA DE 10 s ====================
-// Uma amostra por segundo; a média usa as últimas 10 (= últimos 10 s)
+
 const int NUM_AMOSTRAS = 10;
 const unsigned long INTERVALO_AMOSTRA = 1000;
 
@@ -84,7 +78,6 @@ int   indiceAmostra = 0;
 int   totalAmostras = 0;     // quantas posições já foram preenchidas (até 10)
 float ultimaTemp = 0, ultimaUmid = 0;   // última leitura válida do DHT
 
-// Médias atuais (o que é exibido e avaliado)
 float mediaTemp = 0;
 float mediaUmid = 0;
 int   mediaLuz  = 0;
@@ -102,7 +95,6 @@ const unsigned long TEMPO_TELA = 3000;   // troca de tela a cada 3 s
 const int NUM_TELAS = 4;                 // data/hora, temperatura, umidade, luz
 
 // ==================== EEPROM =========================
-// Endereço 0: configurações | a partir do 16: logs (fila circular)
 const byte ASSINATURA = 0xA7;            // indica que a EEPROM já foi configurada
 const int  END_CONFIG = 0;
 const int  END_LOGS   = 16;
@@ -130,7 +122,7 @@ unsigned long ultimoLog = 0;
 Config config;
 
 // ============ LOGO: taça enchendo de vinho ===========
-// 5 quadros da animação: a taça vai do vazio ao cheio
+
 byte quadroTaca[5][8] = {
   {B10001, B10001, B10001, B10001, B01010, B00100, B00100, B01110},
   {B10001, B10001, B10001, B11111, B01110, B00100, B00100, B01110},
@@ -177,7 +169,6 @@ void setup() {
     Serial.println(F("RTC nao encontrado!"));
   }
   if (!rtc.isrunning()) {
-    // RTC parado: acerta com a data/hora da compilação
     rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
   }
 
@@ -233,8 +224,6 @@ void loop() {
 
 // ===================== LEITURAS ======================
 
-// Lê o LDR (média rápida de 10 leituras, como no CP1) e o DHT22,
-// e guarda o resultado no buffer circular de 10 amostras
 void coletarAmostra() {
   long soma = 0;
   analogRead(PIN_LDR);                 // leitura descartada (estabiliza o ADC)
@@ -244,13 +233,12 @@ void coletarAmostra() {
   }
   ldrBruto = soma / 10;
 
-  // Calibração com map(): converte a faixa medida para 0-100%
   int luz = map(ldrBruto, LDR_ESCURO, LDR_CLARO, 0, 100);
   luz = constrain(luz, 0, 100);
 
   float t = dht.readTemperature();     // °C
   float u = dht.readHumidity();        // %
-  // Se a leitura falhar (NaN), reaproveita a última leitura válida
+  
   if (!isnan(t)) ultimaTemp = t;
   if (!isnan(u)) ultimaUmid = u;
 
@@ -262,7 +250,6 @@ void coletarAmostra() {
   if (totalAmostras < NUM_AMOSTRAS) totalAmostras++;
 }
 
-// Média das amostras guardadas (últimos 10 s)
 void calcularMedias() {
   float somaT = 0, somaU = 0;
   long somaL = 0;
@@ -305,8 +292,6 @@ void atualizarLeds(byte estado) {
   digitalWrite(PIN_LED_VERMELHO, estado == ESTADO_CRITICO ? HIGH : LOW);
 }
 
-// Toca 3 s e repete a cada 10 s enquanto a condição continuar.
-// Usa millis() em vez de delay() para não travar as leituras.
 void controlarBuzzer(bool deveTocar) {
   unsigned long agora = millis();
 
@@ -330,7 +315,6 @@ void controlarBuzzer(bool deveTocar) {
 
 // ======================= LCD =========================
 
-// Escreve uma linha inteira (completa com espaços para apagar sobras)
 void imprimirLinha(int linha, const char* texto) {
   char buf[17];
   snprintf(buf, sizeof(buf), "%-16s", texto);
@@ -338,7 +322,6 @@ void imprimirLinha(int linha, const char* texto) {
   lcd.print(buf);
 }
 
-// Converte a temperatura para a unidade escolhida e gera o texto "13.5C"
 void formatarTemp(float tempC, char* saida) {
   float valor = (config.unidade == 'F') ? tempC * 9.0 / 5.0 + 32.0 : tempC;
   char num[8];
@@ -389,7 +372,6 @@ void mostrarTela(int tela, byte geral, byte eLuz, byte eTemp, byte eUmid) {
   imprimirLinha(1, l1);
 }
 
-// Animação de abertura: taças enchendo, nome digitado letra a letra e piscando
 void animacaoLogo() {
   lcd.clear();
 
@@ -426,7 +408,6 @@ void animacaoLogo() {
 
 // ===================== RTC ===========================
 
-// O RTC guarda a hora em UTC; somamos o fuso configurado
 DateTime horaLocal() {
   return rtc.now() + TimeSpan((int32_t)config.utcOffset * 3600L);
 }
@@ -450,7 +431,6 @@ void salvarConfig() {
   EEPROM.put(END_CONFIG, config);
 }
 
-// Grava um registro na fila circular (quando enche, sobrescreve o mais antigo)
 void gravarLog(byte estado) {
   RegistroLog reg;
   reg.timestamp = rtc.now().unixtime();
@@ -470,7 +450,6 @@ void mostrarLogs() {
   Serial.print(config.totalLogs);
   Serial.println(F(" registro(s) ==="));
 
-  // O mais antigo fica na posição "proximoLog" quando a fila já deu a volta
   int inicio = (config.totalLogs < MAX_LOGS) ? 0 : config.proximoLog;
   for (int i = 0; i < (int)config.totalLogs; i++) {
     RegistroLog reg;
@@ -527,7 +506,6 @@ void lerComandoSerial() {
   }
 }
 
-// Linha de acompanhamento no Monitor Serial (1 por segundo)
 void imprimirSerial() {
   DateTime agora = horaLocal();
   char hora[9];
