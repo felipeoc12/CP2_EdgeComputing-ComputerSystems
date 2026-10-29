@@ -15,7 +15,7 @@
 ## 🔗 Links
 
 - **Simulação no Wokwi:** _(https://wokwi.com/projects/479143435144111105)_
-- **Vídeo explicativo:** _(adicionar link)_
+- **Vídeo explicativo:** _(https://youtu.be/tDZjwkpHSPQ?is=D8ntxtP5fKpXGEVJ))_
 
 ## 📌 Sobre o projeto
 
